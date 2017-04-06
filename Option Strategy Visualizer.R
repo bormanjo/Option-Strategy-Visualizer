@@ -42,13 +42,13 @@ option <- function(underlying, call, long, premium, strike, maturity, quantity=1
 
 {
 c1 <- option("SPY", call=T, long=T, 
-             premium = -5, strike = 50, 
+             premium = -5, strike = 55, 
              maturity = Sys.Date()+months(1), quantity=1)
 c2 <- option("SPY", call=T, long=F, 
              premium = -5, strike = 50, 
              maturity = Sys.Date()+months(1), quantity=1)
 p1 <- option("SPY", call=F, long=T, 
-             premium = -5, strike = 50, 
+             premium = -5, strike = 55, 
              maturity = Sys.Date()+months(1), quantity=1)
 p2 <- option("SPY", call=F, long=F, 
              premium = -5, strike = 50, 
@@ -92,7 +92,7 @@ plot_option <- function(option_obj, line_color="red", new_plot=TRUE){
   if(new_plot){
     a <- plot(NULL,NULL,xlim=c(0, 100), 
            ylim=c(-50, 50), 
-           xlab="Spot at time T", 
+           xlab="Spot at Expiration", 
            ylab="P/L ($)", 
            main=paste(option_obj$quantity, "x",option_obj$position.type, option_obj$option.type,"on", option_obj$underlying), new=new_plot)
     abline(h=0, v=0, new=FALSE)
@@ -112,10 +112,10 @@ plot_option(p2) #Short Put
 }
 
 get_strategy_table <- function(option_frame){
-  unique_k <- unique(option_frame$strike)
-  nColumns <- length(unique_k) + 1
+  unique_k <- sort(unique(option_frame$strike))
+  nColumns <- length(unique_k) + 2
   nRows <- nrow(option_frame)
-  c.names <- c(sprintf("K%d", 1:(nColumns-1)), "inf")
+  c.names <- c("0", sprintf("K%d", 1:(nColumns-2)), "inf")
   r.names <- sprintf("Option %d", 1:nRows)
 
   tempMatrix <- matrix(data = rep(x=c(0), nRows*nColumns), nrow=nRows, ncol=nColumns)
@@ -124,22 +124,48 @@ get_strategy_table <- function(option_frame){
   colnames(tempFrame) <- c.names
   
   totalPremium <- option_frame$premium %*% option_frame$quantity
-  TerminalSpot <- 100
+  TerminalSpot <- unique_k[length(unique_k)]*10
+  unique_k <- c(0, unique_k, TerminalSpot)
   
   for(i in 1:nRows){
-    yCoord <- NA
-    
-    if(option_frame[i,]$isCall){
-      yCoord <- (TerminalSpot*option_frame[i,]$quantity) - option_frame[i,]$strike
+    if(!option_frame[i,]$isCall){
+      tempVec <- option_frame[i,]$strike - unique_k
     } else {
-      yCoord <- option_frame[i,]$strike
+      tempVec <-  unique_k - option_frame[i,]$strike
     }
     
+    tempVec[tempVec < 0] = 0
+    
+    tempVec <- (tempVec)*(-1)^(!option_frame[i,]$isLong) + option_frame[i,]$premium
+    
+  tempFrame[i,] <- tempVec
+  
   }
   
-  return(tempFrame)
+  retVars <- list(strategy.frame = tempFrame, strikes = unique_k)
+  
+  return(retVars)
 }
-get_strategy_table(dfSet1)
+sTable <- get_strategy_table(dfSet1)
+sTable
+
+plot_strategy <- function(strategy_frame, strikes){
+  b <- plot(NULL,NULL,xlim=c(0, strikes[length(strikes)-1]+50), 
+            ylim=c(-50, 50), 
+            xlab="Spot at Expiration", 
+            ylab="P/L ($)", 
+            main="Option Strategy Payoff")
+  abline(h=0, v=0, new=FALSE)
+  
+  xCoords <- c(0, strikes)
+
+  for(i in 1:nrow(strategy_frame)){
+    lines(x=strikes, y=strategy_frame[i,], col="gray")
+  }
+  lines(x=strikes, y=colSums(strategy_frame), col="red", lwd=3)
+  
+}
+plot_strategy(sTable$strategy.frame, sTable$strikes)
 
 
 
