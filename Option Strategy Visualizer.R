@@ -146,8 +146,7 @@ get_strategy_table <- function(option_frame){
   
   return(retVars)
 }
-sTable <- get_strategy_table(dfSet1)
-sTable
+
 
 plot_strategy <- function(strategy_frame, strikes){
   b <- plot(NULL,NULL,xlim=c(0, strikes[length(strikes)-1]+50), 
@@ -160,11 +159,16 @@ plot_strategy <- function(strategy_frame, strikes){
   xCoords <- c(0, strikes)
 
   for(i in 1:nrow(strategy_frame)){
-    lines(x=strikes, y=strategy_frame[i,], col="gray")
+    lines(x=strikes, y=strategy_frame[i,], col="gray48")
   }
   lines(x=strikes, y=colSums(strategy_frame), col="red", lwd=3)
   
+  
 }
+
+dfSet1
+sTable <- get_strategy_table(dfSet1[c(2,3,4),])
+sTable
 plot_strategy(sTable$strategy.frame, sTable$strikes)
 
 
