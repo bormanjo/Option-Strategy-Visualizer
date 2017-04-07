@@ -40,25 +40,8 @@ option <- function(underlying, call, long, premium, strike, maturity, quantity=1
   return(retList)
 }
 
-{
-c1 <- option("SPY", call=T, long=T, 
-             premium = -5, strike = 55, 
-             maturity = Sys.Date()+months(1), quantity=1)
-c2 <- option("SPY", call=T, long=F, 
-             premium = -5, strike = 50, 
-             maturity = Sys.Date()+months(1), quantity=1)
-p1 <- option("SPY", call=F, long=T, 
-             premium = -5, strike = 55, 
-             maturity = Sys.Date()+months(1), quantity=1)
-p2 <- option("SPY", call=F, long=F, 
-             premium = -5, strike = 50, 
-             maturity = Sys.Date()+months(1), quantity=1)
-}
-
-opt_set1 = list(c1, c2, p1, p2)
-
 get_option_table <- function(option_set){
-  # Option set is a vector of options
+  # Option set is a list of options
   option_table <- data.frame()
   
   for(i in 1:length(option_set)){
@@ -66,8 +49,6 @@ get_option_table <- function(option_set){
   }
   return(option_table)
 }
-
-dfSet1 <- get_option_table(opt_set1)
 
 plot_option <- function(option_obj, line_color="red", new_plot=TRUE){
   TerminalSpot <- 100
@@ -103,14 +84,6 @@ plot_option <- function(option_obj, line_color="red", new_plot=TRUE){
   return(a)
 }
 
-# Plot Put/Call, Long/Short options
-{
-plot_option(c1) #Long Call
-plot_option(c2) #Short Call
-plot_option(p1) #Long Put
-plot_option(p2) #Short Put
-}
-
 get_strategy_table <- function(option_frame){
   unique_k <- sort(unique(option_frame$strike))
   nColumns <- length(unique_k) + 2
@@ -123,7 +96,7 @@ get_strategy_table <- function(option_frame){
   rownames(tempFrame) <- r.names
   colnames(tempFrame) <- c.names
   
-  totalPremium <- option_frame$premium %*% option_frame$quantity
+  #totalPremium <- option_frame$premium %*% option_frame$quantity
   TerminalSpot <- unique_k[length(unique_k)]*10
   unique_k <- c(0, unique_k, TerminalSpot)
   
@@ -136,9 +109,9 @@ get_strategy_table <- function(option_frame){
     
     tempVec[tempVec < 0] = 0
     
-    tempVec <- (tempVec)*(-1)^(!option_frame[i,]$isLong) + option_frame[i,]$premium
+    tempVec <- (tempVec)*(-1)^(!option_frame[i,]$isLong) + option_frame[i,]$premium*option_frame[i,]$quantity
     
-  tempFrame[i,] <- tempVec
+  tempFrame[i,] <- tempVec*option_frame[i,]$quantity
   
   }
   
@@ -146,7 +119,6 @@ get_strategy_table <- function(option_frame){
   
   return(retVars)
 }
-
 
 plot_strategy <- function(strategy_frame, strikes){
   b <- plot(NULL,NULL,xlim=c(0, strikes[length(strikes)-1]+50), 
@@ -162,14 +134,13 @@ plot_strategy <- function(strategy_frame, strikes){
     lines(x=strikes, y=strategy_frame[i,], col="gray48")
   }
   lines(x=strikes, y=colSums(strategy_frame), col="red", lwd=3)
+  points(y=rep(0, length(strikes)-2), x=strikes[2:(length(strikes)-1)], pch="|")
+  text(y=rep(-20, length(strikes)-2), x=strikes[2:(length(strikes)-1)], sprintf("k%d", 1:(length(strikes)-2)))
   
   
 }
 
-dfSet1
-sTable <- get_strategy_table(dfSet1[c(2,3,4),])
-sTable
-plot_strategy(sTable$strategy.frame, sTable$strikes)
+
 
 
 
